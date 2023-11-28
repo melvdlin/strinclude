@@ -3,7 +3,7 @@ use clap::{value_parser, Arg, ArgAction, Command};
 use itertools::Itertools;
 use std::error::Error;
 use std::ffi::{OsStr, OsString};
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 
@@ -110,7 +110,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let terminate = matches.get_flag("terminate");
 
     let mut file = File::open(file)?;
-    let mut out = File::open(out)?;
+    let mut out = OpenOptions::new().write(true).create(true).open(out)?;
 
     let mut file_content = Vec::new();
     file.read_to_end(&mut file_content)?;
