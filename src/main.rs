@@ -103,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .to_owned(),
         );
 
-    if strinclude::symbol_name_is_legal(&var_name) {
+    if !strinclude::symbol_name_is_legal(&var_name) {
         return Err(format!("{var_name} is not a legal C variable name!").into());
     }
 
