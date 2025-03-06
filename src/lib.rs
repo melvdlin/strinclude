@@ -38,7 +38,7 @@ pub fn literalize(
     let formatted = formatdoc!("
         #pragma once
         #include <stdint.h>
-        static const uint8_t {symbol_name} = {{
+        static const uint8_t {symbol_name}[] = {{
             {file_content}
         }};
     ");
