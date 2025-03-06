@@ -1,13 +1,11 @@
-use itertools::Itertools;
-use lazy_static::lazy_static;
+use indoc::formatdoc;
 use regex::Regex;
-use std::iter;
+
+use std::sync::LazyLock;
 
 pub fn symbol_name_is_legal(symbol_name: &str) -> bool {
-    lazy_static! {
-        static ref LEGAL_NAME_REGEX: Regex =
-            Regex::new("^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
-    }
+    static LEGAL_NAME_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new("^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap());
     LEGAL_NAME_REGEX.is_match(symbol_name)
 }
 
@@ -15,24 +13,34 @@ pub fn literalize(
     symbol_name: &str,
     file: impl Iterator<Item = u8>,
 ) -> impl Iterator<Item = u8> {
-    const INCLUDE_GUARD: &str = "#pragma once";
-    const STDINT_INCLUDE: &str = "#include <stdint.h>";
-    let byte_chunks =
-        Itertools::intersperse(file.map(|byte| byte.to_string()), ", ".to_owned());
+    let (lower, _upper) = file.size_hint();
+    let bytes_per_line = 12;
+    let mut file_content = String::with_capacity(
+        lower * "0xFF, ".len() + lower / bytes_per_line * "    ".len(),
+    );
 
-    let chunks = iter::once(INCLUDE_GUARD.to_owned())
-        .chain(iter::once("\n".to_owned()))
-        .chain(iter::once(STDINT_INCLUDE.to_owned()))
-        .chain(iter::once("\n".to_owned()))
-        .chain(iter::once("static const uint8_t".to_owned()))
-        .chain(iter::once(" ".to_owned()))
-        .chain(iter::once(symbol_name.to_owned()))
-        .chain(iter::once("[]".to_owned()))
-        .chain(iter::once(" = ".to_owned()))
-        .chain(iter::once("{ ".to_owned()))
-        .chain(byte_chunks)
-        .chain(iter::once(" }".to_owned()))
-        .chain(iter::once(";".to_owned()));
+    for (idx, byte) in file.enumerate() {
+        let chunk = smol_str::format_smolstr!(
+            "0x{byte:02x},{}",
+            if (idx + 1) % bytes_per_line == 0 {
+                "\n    "
+            } else {
+                " "
+            }
+        );
+        file_content.push_str(&chunk);
+    }
+    if file_content.ends_with('\n') {
+        file_content.pop();
+    }
 
-    chunks.map(String::into_bytes).flat_map(Vec::into_iter)
+    #[rustfmt::skip]
+    let formatted = formatdoc!("
+        #pragma once
+        #include <stdint.h>
+        static const uint8_t {symbol_name} = {{
+            {file_content}
+        }};
+    ");
+    formatted.into_bytes().into_iter()
 }

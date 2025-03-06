@@ -1,6 +1,7 @@
 use clap::parser::ValueSource;
 use clap::{value_parser, Arg, ArgAction, Command};
 use itertools::Itertools;
+
 use std::error::Error;
 use std::ffi::{OsStr, OsString};
 use std::fs::{File, OpenOptions};
@@ -67,20 +68,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     let matches = cli.get_matches();
     let out_source = matches.value_source("out").expect("default");
 
-    let file: PathBuf = matches
-        .get_one::<PathBuf>("file")
-        .expect("required")
-        .clone();
+    let file: PathBuf = matches.get_one::<PathBuf>("file").expect("required").clone();
 
     let out: PathBuf = if out_source != ValueSource::DefaultValue {
         matches.get_one::<PathBuf>("out").expect("default").clone()
     } else {
         let out_name_source = matches.value_source("outname").expect("default");
         let out_name: PathBuf = if out_name_source != ValueSource::DefaultValue {
-            matches
-                .get_one::<PathBuf>("outname")
-                .expect("default")
-                .to_owned()
+            matches.get_one::<PathBuf>("outname").expect("default").to_owned()
         } else {
             let mut name: OsString = file
                 .file_name()
@@ -93,15 +88,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         out_dir.join(out_name)
     };
 
-    let var_name = matches
-        .get_one::<String>("varname")
-        .map(ToOwned::to_owned)
-        .unwrap_or(
-            file.file_stem()
-                .and_then(OsStr::to_str)
-                .unwrap_or_default()
-                .to_owned(),
-        );
+    let var_name = matches.get_one::<String>("varname").map(ToOwned::to_owned).unwrap_or(
+        file.file_stem().and_then(OsStr::to_str).unwrap_or_default().to_owned(),
+    );
 
     if !strinclude::symbol_name_is_legal(&var_name) {
         return Err(format!("{var_name} is not a legal C variable name!").into());
@@ -110,7 +99,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let terminate = matches.get_flag("terminate");
 
     let mut file = File::open(file)?;
-    let mut out = OpenOptions::new().write(true).create(true).open(out)?;
+    let mut out = OpenOptions::new().write(true).create(true).truncate(true).open(out)?;
 
     let mut file_content = Vec::new();
     file.read_to_end(&mut file_content)?;

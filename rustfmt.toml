@@ -1,4 +1,6 @@
 max_width = 90
-space_before_colon = false
-space_after_colon = true
 match_arm_leading_pipes = "Always"
+merge_derives = false
+chain_width = 90
+imports_granularity = "Item"
+group_imports = "StdExternalCrate"
