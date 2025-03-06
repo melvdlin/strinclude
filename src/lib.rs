@@ -30,9 +30,7 @@ pub fn literalize(
         );
         file_content.push_str(&chunk);
     }
-    if file_content.ends_with('\n') {
-        file_content.pop();
-    }
+    let file_content = file_content.trim();
 
     #[rustfmt::skip]
     let formatted = formatdoc!("
